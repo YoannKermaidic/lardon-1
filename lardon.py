@@ -18,6 +18,7 @@ parser.add_argument('-period', help='which detector period is looked at [default
 parser.add_argument('-out', dest='outname', help='extra name on the output', default='')
 parser.add_argument('-skip', dest='evt_skip', type=int, help='nb of events to skip', default=-1)
 parser.add_argument('-f', '--file', help="Override derived filename")
+parser.add_argument('-conf','--config',dest='conf', help='Ananlysis configuration ID', default='1')
 args = parser.parse_args()
 
 if(args.elec == 'top' or args.elec == 'tde'):
@@ -32,7 +33,9 @@ detector = args.detector
 period = args.period
 outname_option = args.outname
 evt_skip = args.evt_skip
+conf = args.conf
 det.configure(detector, period, elec, run)
+
 
 print("Welcome to LARDON !")
 
@@ -46,7 +49,7 @@ import noise_filter as noise
 import store as store
 import hit_finder as hf
 import track_2d as trk2d
-
+import analysis_parameters as params
 
 
 plot.set_style()
@@ -60,6 +63,10 @@ else:
 name_out = f"{cf.store_path}/{elec}_{run}_{sub}{outname_option}.h5"
 output = tab.open_file(name_out, mode="w", title="Reconstruction Output")
 store.create_tables(output)
+
+""" set thresholds"""
+pars = params.params()
+pars.read(config=args.conf)
 
 """ set the channel mapping """
 print(" will use ", cf.channel_map)
@@ -134,7 +141,8 @@ for ievent in range(nevent):
     tp = time.time()
     for i in range(2):
         ped.compute_pedestal(noise_type='filt')
-        ped.update_mask(4.)
+        if(i==0): ped.update_mask(pars.ped_amp_sig_fst)
+        else:    ped.update_mask(pars.ped_amp_sig_oth)
     #plot.plot_noise_daqch(noise_type='filt',option='fft', vmin=0, vmax=vmax)
     #plot.plot_noise_vch(noise_type='filt', vmin=0, vmax=vmax,option='fft')#,to_be_shown=True)
 
@@ -160,7 +168,7 @@ for ievent in range(nevent):
     tpm = time.time()
     for i in range(2):
         ped.compute_pedestal(noise_type='filt')
-        ped.update_mask(4.)
+        ped.update_mask(pars.ped_amp_sig_oth)
 
 
     #plot.plot_noise_daqch(noise_type='filt',option='coherent', vmin=0, vmax=vmax)
@@ -180,10 +188,10 @@ for ievent in range(nevent):
 
     
     th = time.time()
-    hf.find_hits(6, 10, 10, 3., 6., 2.)
+    hf.find_hits(6, 10, pars.hit_dt_min[0], pars.hit_amp_sig[0],pars.hit_amp_sig[1],pars.hit_amp_sig[2])
     print("hit %.2f s"%(time.time()-th))
     print(dc.evt_list[-1].n_hits)
-    plot.plot_2dview_hits(to_be_shown=False)
+    plot.plot_2dview_hits(to_be_shown=True)
 
     """parameters : min nb hits, rcut, chi2cut, y error, slope error, pbeta"""
 

@@ -1,0 +1,12 @@
+{
+  "1":{
+     "pedestal":{
+        "first_pass_thrs": 4,
+        "other_pass_thrs": 3
+     },
+     "hit_finder":{
+        "amp_sig_thrs": [3,6,2],
+        "dt_min": [10,10,10]
+     }
+   }
+}
